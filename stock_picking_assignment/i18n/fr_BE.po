@@ -1,0 +1,32 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+#	* stock_picking_assignment
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 9.0e\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-01-20 13:28+0000\n"
+"PO-Revision-Date: 2017-01-20 13:28+0000\n"
+"Last-Translator: <>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: stock_picking_assignment
+#: model:ir.model.fields,field_description:stock_picking_assignment.field_stock_picking_operator_id
+#: model:ir.ui.view,arch_db:stock_picking_assignment.view_stock_picking_operator_search
+msgid "Operator"
+msgstr "Opérateur"
+
+#. module: stock_picking_assignment
+#: model:ir.ui.view,arch_db:stock_picking_assignment.view_stock_picking_operator_form
+msgid "Start"
+msgstr "Démarrer"
+
+#. module: stock_picking_assignment
+#: model:ir.model,name:stock_picking_assignment.model_stock_picking
+msgid "Transfer"
+msgstr "Transfert"
