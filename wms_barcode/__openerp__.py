@@ -10,6 +10,7 @@
     'depends': [
         'stock',
         'stock_picking_assignment',
+        'stock_location_position',
     ],
     'data': [
     ],

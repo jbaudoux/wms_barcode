@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<openerp>
+<data>
+  <record model="ir.ui.view" id="picking_zone_form_view">
+    <field name="name">picking.zone.form (in stock_picking_zone)</field>
+    <field name="model">picking.zone</field>
+    <field name="arch" type="xml">
+      <form string="Picking zone">
+        <sheet>
+          <group>
+            <field name="name" />
+            <field name="code" />
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="picking_zone_view_tree" model="ir.ui.view">
+    <field name="name">picking.zone.view.tree</field>
+    <field name="model">picking.zone</field>
+    <field name="arch" type="xml">
+      <tree editable="bottom">
+        <field name="name" />
+        <field name="code" />
+      </tree>
+    </field>
+  </record>
+  <record id="action_picking_zone" model="ir.actions.act_window">
+      <field name="name">Picking Zones</field>
+      <field name="type">ir.actions.act_window</field>
+      <field name="res_model">picking.zone</field>
+      <field name="view_type">form</field>
+      <field name="view_mode">tree,form</field>
+      <field name="help" type="html">
+          <p class="oe_view_nocontent_create">
+          Click to create a picking zone.
+          </p>
+      </field>
+  </record>
+  <menuitem
+    id="picking_zone_menu"
+    action="action_picking_zone"
+    parent="stock.menu_stock_configuration"
+    sequence="3"
+  />
+</data>
+</openerp>

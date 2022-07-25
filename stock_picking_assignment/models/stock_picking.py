@@ -2,7 +2,7 @@
 # Copyright 2016-2019 Jacques-Etienne Baudoux (BCIM) <je@bcim.be>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
-from odoo import api, fields, models
+from openerp import api, fields, models
 
 
 class StockPicking(models.Model):

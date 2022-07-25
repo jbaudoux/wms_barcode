@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo>
+<openerp>
+<data>
     <record id="view_stock_picking_operator_search" model="ir.ui.view">
         <field name="name">view.stock.picking.operator.search</field>
         <field name="model">stock.picking</field>
@@ -32,9 +33,10 @@
                     attrs="{'invisible': ['|', ('state', 'not in', ['assigned','partially_available']), ('operator_id', '!=', False)]}" class="oe_highlight"/>
             </xpath>
 
-            <xpath expr="//field[@name='scheduled_date']" position="before">
+            <xpath expr="//field[@name='date']" position="before">
                 <field name="operator_id"/>
             </xpath>
         </field>
     </record>
-</odoo>
+</data>
+</openerp>

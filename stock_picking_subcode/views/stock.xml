@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<openerp>
+<data>
+
+    <record id="view_picking_type_form" model="ir.ui.view">
+        <field name="name">stock.picking.type.subcode</field>
+        <field name="model">stock.picking.type</field>
+        <field name="inherit_id" ref="stock.view_picking_type_form"/>
+        <field name="arch" type="xml">
+            <field name="code" position="after">
+                <field name="subcode"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_picking_form" model="ir.ui.view">
+        <field name="name">stock.picking.subcode</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <field name="picking_type_code" position="after">
+                <field name="picking_type_subcode" invisible="1"/>
+            </field>
+        </field>
+    </record>
+
+</data>
+</openerp>
