@@ -13,6 +13,7 @@
         'stock_location_position',
     ],
     'data': [
+        'views/stock_picking_type.xml',
     ],
     'installable': True,
 }

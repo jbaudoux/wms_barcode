@@ -23,34 +23,40 @@ class StockPicking(models.Model):
         return self.search(domain, limit=limit)
 
     @api.model
-    def wms_start_picking(self, picking_type_ids, operator_id, nbr=1):
-        # FIXME: store round datetime on picking for sorting
-        #    "ORDER BY round.date, round.time_picking_planned"
-        #    "picking.rank DESC "
-
+    def wms_start_picking(self, picking_type_id, operator_id):
         # FIXME: add picking progress (ongoing)
+        self.env.cr.execute("""
+            SELECT printed
+            FROM stock_picking
+            WHERE picking_type_id = %s
+            FOR UPDATE
+            """, (picking_type_id, ))
+
+        picking_type = self.env["stock.picking.type"].browse(picking_type_id)
+        nbr = picking_type.wms_wave_size
 
         picking = self._wms_select_recover_picking([
             ('operator_id', '=', operator_id),
             ('printed', '=', True),
-            ('picking_type_id', 'in', picking_type_ids),
+            ('picking_type_id', '=', picking_type_id),
             ('state', 'in', ('partially_available', 'assigned'))],
             limit=nbr)
 
-        if len(picking) < nbr:
-            picking |= self._wms_select_assigned_picking([
-                ('operator_id', '=', operator_id),
-                ('printed', '=', True),
-                ('picking_type_id', 'in', picking_type_ids),
-                ('state', 'in', ('partially_available', 'assigned'))],
-                limit=(nbr - len(picking)))
+        if not picking:
+            if len(picking) < nbr:
+                picking |= self._wms_select_assigned_picking([
+                    ('operator_id', '=', operator_id),
+                    ('printed', '=', True),
+                    ('picking_type_id', '=', picking_type_id),
+                    ('state', 'in', ('partially_available', 'assigned'))],
+                    limit=(nbr - len(picking)))
 
-        if len(picking) < nbr:
-            picking |= self._wms_select_new_picking([
-                ('operator_id', '=', False),
-                ('picking_type_id', 'in', picking_type_ids),
-                ('state', 'in', ('partially_available', 'assigned'))],
-                limit=(nbr - len(picking)))
+            if len(picking) < nbr:
+                picking |= self._wms_select_new_picking([
+                    ('operator_id', '=', False),
+                    ('picking_type_id', '=', picking_type_id),
+                    ('state', 'in', ('partially_available', 'assigned'))],
+                    limit=(nbr - len(picking)))
 
         # Mark picking as started
         picking.filtered(lambda p: not p.printed or not p.operator_id)\
@@ -61,9 +67,13 @@ class StockPicking(models.Model):
     def wms_picking_load(self):
         pickings = []
         for p in self:
+            if not p.pack_operation_ids:
+                # Create the pack operations if they do not exist yet
+                p.recheck_availability()
             ml = []
             for line in p.pack_operation_ids:
                 d = {
+                    'id': line.id,
                     'product_id': line.product_id.id,
                     'product_uom': line.product_uom_id.display_name,
                     'product_qty': line.product_qty,
@@ -73,7 +83,8 @@ class StockPicking(models.Model):
                         'name': line.location_id.name,
                         'corridor': line.location_id.corridor,
                         #'barcode': line.location_id.barcode,
-                    }
+                    },
+                    'package_dest_id': line.result_package_id.id,
                 }
                 if line.lot_id:
                     d.update({
@@ -94,23 +105,24 @@ class StockPicking(models.Model):
             })
         return pickings
 
-    def wms_picking_set_qty(self, qty, product_id, location_id, lot_id):
+    @api.multi
+    def wms_picking_set_qty(self, pack_op_id, qty, lot_id, pack_id):
         self.ensure_one()
-        line = self.pack_operation_ids.filtered(
-            lambda ml: ml.product_id.id == product_id and
-            ml.location_id.id == location_id)
+        line = self.pack_operation_ids.browse(pack_op_id)
         if not line:
             raise UserError(_('Operation not found'))
         if len(line) > 1:
             raise UserError(_('Multiple operations found'))
-        if lot_id:
-            lot = line.pack_lot_ids.filtered(lambda l: l.lot_id.id == lot_id)
-            if not lot:
-                line.pack_lot_ids = [(0, 0, {
-                    'lot_id': lot_id, 'qty': qty})]
-            else:
-                lot.qty += qty
-        line.qty_done += qty
+        # In v8, the lot is on the pack op line
+        # if lot_id:
+        #     lot = line.pack_lot_ids.filtered(lambda l: l.lot_id.id == lot_id)
+        #     if not lot:
+        #         line.pack_lot_ids = [(0, 0, {
+        #             'lot_id': lot_id, 'qty': qty})]
+        #     else:
+        #         lot.qty += qty
+        line.qty_done = qty
+        line.result_package_id = pack_id
 
     def wms_put_in_pack(self):
         self.ensure_one()
@@ -122,11 +134,9 @@ class StockPicking(models.Model):
         if packs:
             return packs[0].name
 
+    @api.multi
     def wms_transfer(self):
         self.ensure_one()
-        return
-        if self.check_backorder():
-            wiz = self.env['stock.backorder.confirmation'].create(
-                {'pick_id': self.id}
-            )
-            wiz.process()
+        if self.state in ('cancel', 'done'):
+            return
+        self.do_transfer()
