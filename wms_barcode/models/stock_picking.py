@@ -23,7 +23,7 @@ class StockPicking(models.Model):
         return self.search(domain, limit=limit)
 
     @api.model
-    def wms_start_picking(self, picking_type_id, operator_id):
+    def wms_start_picking(self, picking_type_id, operator_id, picking_ids=None):
         # FIXME: add picking progress (ongoing)
         self.env.cr.execute("""
             SELECT printed
@@ -35,28 +35,35 @@ class StockPicking(models.Model):
         picking_type = self.env["stock.picking.type"].browse(picking_type_id)
         nbr = picking_type.wms_wave_size
 
-        picking = self._wms_select_recover_picking([
-            ('operator_id', '=', operator_id),
-            ('printed', '=', True),
-            ('picking_type_id', '=', picking_type_id),
-            ('state', 'in', ('partially_available', 'assigned'))],
-            limit=nbr)
+        if picking_ids:
+            picking = self.search([
+                ('id', 'in', picking_ids),
+                ('operator_id', 'in', [operator_id, False]),
+                ('picking_type_id', '=', picking_type_id),
+                ('state', 'in', ('partially_available', 'assigned'))],
+                limit=nbr)
+        else:
+            picking = self._wms_select_recover_picking([
+                ('operator_id', '=', operator_id),
+                ('printed', '=', True),
+                ('picking_type_id', '=', picking_type_id),
+                ('state', 'in', ('partially_available', 'assigned'))],
+                limit=nbr)
 
-        if not picking:
-            if len(picking) < nbr:
-                picking |= self._wms_select_assigned_picking([
-                    ('operator_id', '=', operator_id),
-                    ('printed', '=', True),
-                    ('picking_type_id', '=', picking_type_id),
-                    ('state', 'in', ('partially_available', 'assigned'))],
-                    limit=(nbr - len(picking)))
+            if not picking:
+                if len(picking) < nbr:
+                    picking |= self._wms_select_assigned_picking([
+                        ('operator_id', '=', operator_id),
+                        ('picking_type_id', '=', picking_type_id),
+                        ('state', 'in', ('partially_available', 'assigned'))],
+                        limit=(nbr - len(picking)))
 
-            if len(picking) < nbr:
-                picking |= self._wms_select_new_picking([
-                    ('operator_id', '=', False),
-                    ('picking_type_id', '=', picking_type_id),
-                    ('state', 'in', ('partially_available', 'assigned'))],
-                    limit=(nbr - len(picking)))
+                if len(picking) < nbr:
+                    picking |= self._wms_select_new_picking([
+                        ('operator_id', '=', False),
+                        ('picking_type_id', '=', picking_type_id),
+                        ('state', 'in', ('partially_available', 'assigned'))],
+                        limit=(nbr - len(picking)))
 
         # Mark picking as started
         picking.filtered(lambda p: not p.printed or not p.operator_id)\
