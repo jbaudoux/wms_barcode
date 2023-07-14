@@ -135,11 +135,16 @@ class StockPicking(models.Model):
             ("picking_id", "!=", line.picking_id.id),
         ])
         for op in ops:
-            if op.state in ("cancel", "done"):
+            if op.picking_id.state in ("cancel", "done"):
                 continue
+            pack = self.env["stock.quant.package"].browse(pack_id)
             raise UserError(
-                "This bin is already used by %s" %
-                ops.mapped("picking_id.name"))
+                "The bin %s is already used by %s" %
+                (
+                    pack.name,
+                    ", ".join(ops.mapped("picking_id.name"))
+                )
+            )
 
         line.qty_done = qty
         line.result_package_id = pack_id
