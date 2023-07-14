@@ -128,6 +128,19 @@ class StockPicking(models.Model):
         #             'lot_id': lot_id, 'qty': qty})]
         #     else:
         #         lot.qty += qty
+
+        # Check pack is valid
+        ops = self.env["stock.pack.operation"].search([
+            ("result_package_id", "=", pack_id),
+            ("picking_id", "!=", line.picking_id.id),
+        ])
+        for op in ops:
+            if op.state in ("cancel", "done"):
+                continue
+            raise UserError(
+                "This bin is already used by %s" %
+                ops.mapped("picking_id.name"))
+
         line.qty_done = qty
         line.result_package_id = pack_id
 
@@ -146,4 +159,7 @@ class StockPicking(models.Model):
         self.ensure_one()
         if self.state in ('cancel', 'done'):
             return
+        # Unload internal package
+        for op in self.pack_operation_ids:
+            op.result_package_id = False
         self.do_transfer()
